@@ -348,7 +348,7 @@ if ( isset( $_GET['action'] ) ) {
 						foreach ( $file['posts'] as $post ) {
 
 							// We get the line of the page configuration
-							$pre_config_post = explode( "-", $post );
+							$pre_config_post = explode( "{{{}}}", $post );
 							$post = array();
 
 							foreach ( $pre_config_post as $config_post ) {
@@ -470,6 +470,8 @@ if ( isset( $_GET['action'] ) ) {
 				/*--------------------------*/
 				/*	Let's retrieve the plugin folder
 				/*--------------------------*/
+                            
+                                require_once $directory . 'wp-admin/includes/file.php';
 
 				if ( ! empty( $_POST['plugins'] ) ) {
 
@@ -479,7 +481,7 @@ if ( isset( $_GET['action'] ) ) {
 
 					foreach ( $plugins as $plugin ) {
 
-						// We retrieve the plugin XML file to get the link to downlad it
+						// We retrieve the plugin XML file to get the link to download it
 					    $plugin_repo = file_get_contents( "http://api.wordpress.org/plugins/info/1.0/$plugin.json" );
 
 					    if ( $plugin_repo && $plugin = json_decode( $plugin_repo ) ) {
@@ -504,6 +506,54 @@ if ( isset( $_GET['action'] ) ) {
 
 				if ( $_POST['plugins_premium'] == 1 ) {
 
+                                        // Download premiums plugins
+					// We parse the file and get the array
+					$file = parse_ini_file( 'data.ini' );
+                                        
+                                        if ( count( $file['premium_plugins']) >= 1){
+                                            
+                                            if ( ! is_dir( 'plugins' ) ) {
+                                                    mkdir( 'plugins' );
+                                            }
+                                                
+                                            foreach ( $file['premium_plugins'] as $premium_plugin_line ){
+                                                
+                                                $pre_config_premium_plugin = explode("{{{}}}", $premium_plugin_line);
+                                                $premium_plugin = array();
+                                                
+                                                
+                                                foreach ( $pre_config_premium_plugin as $config_premium_plugin) {
+                                                    
+                                                    // We retrieve the plugin slug
+                                                    if ( preg_match( '#name::#', $config_premium_plugin ) == 1 ) {
+                                                            $premium_plugin['name'] = str_replace( 'name::', '', $config_premium_plugin );
+                                                    }
+                                                    
+                                                    // We retrieve the plugin download link
+                                                    if ( preg_match( '#download_link::#', $config_premium_plugin ) == 1 ) {
+                                                            $premium_plugin['download_link'] = str_replace( 'download_link::', '', $config_premium_plugin );
+                                                    }
+                                                    
+                                                    
+                                                }
+                                                
+                                                
+                                                $premium_plugin_path = 'plugins/' . $premium_plugin['name'] . '.zip';
+                                                
+                                                
+                                                if ( ! file_exists( $premium_plugin_path ) ){
+                                                    
+                                                    if ( $download_link = file_get_contents( $premium_plugin['download_link'] ) ){
+                                                        file_put_contents( $premium_plugin_path, $download_link );
+                                                        
+                                                    }
+                                                }
+                                                
+                                            }
+                                            
+                                        }
+                                        
+                                        
 					// We scan the folder
 					$plugins = scandir( 'plugins' );
 
